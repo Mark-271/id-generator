@@ -22,6 +22,7 @@ static int id_gen(void)
 static void *thread_func(void *data)
 {
 	UNUSED(data);
+
 	while (!finished)
 		printf("%d\n", id_gen());
 
