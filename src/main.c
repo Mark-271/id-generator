@@ -10,17 +10,26 @@
 
 static pthread_t th_id[TH_NUM];
 static bool finished;
+static pthread_mutex_t lock;
 
 /* Function to generate unique ids */
 static int gen_id(void)
 {
 	static int id;
-	return id++; /* RMW, non-atomic */
+	int tmp;
+
+	pthread_mutex_lock(&lock);
+	tmp = id++; /* RMW, non-atomic */
+	pthread_mutex_unlock(&lock);
+
+	return tmp;
 }
 
 /* Function to be operated by thread */
 static void *thread_func(void *data)
 {
+	int id;
+
 	UNUSED(data);
 
 	while (!finished)
@@ -31,14 +40,17 @@ static void *thread_func(void *data)
 
 int main(void)
 {
-	int err;
+	int err, ret = EXIT_SUCCESS;
 	size_t i;
+
+	pthread_mutex_init(&lock, NULL);
 
 	for (i = 0; i < TH_NUM; ++i) {
 		err = pthread_create(&th_id[i], NULL, thread_func, &i);
 		if (err) {
 			perror("Error in pthread_create()");
-			return EXIT_FAILURE;
+			ret = EXIT_FAILURE;
+			goto err;
 		}
 	}
 
@@ -48,10 +60,12 @@ int main(void)
 	for (i = 0; i < TH_NUM; ++i) {
 		err = pthread_join(th_id[i], NULL);
 		if (err) {
-			perror("Error in pthread_join()");
-			return EXIT_FAILURE;
+			perror("Warning: Error in pthread_join()");
+			ret = EXIT_FAILURE;
 		}
 	}
 
-	return EXIT_SUCCESS;
+err:
+	pthread_mutex_destroy(&lock);
+	return ret;
 }
