@@ -12,7 +12,7 @@ static pthread_t th_id[TH_NUM];
 static bool finished;
 
 /* function to generate unique ids */
-static int id_gen(void)
+static int gen_id(void)
 {
 	static int id;
 	return id++;
@@ -24,7 +24,7 @@ static void *thread_func(void *data)
 	UNUSED(data);
 
 	while (!finished)
-		printf("%d\n", id_gen());
+		printf("%d\n", gen_id());
 
 	return NULL;
 }
