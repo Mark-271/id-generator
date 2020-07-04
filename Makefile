@@ -51,6 +51,9 @@ index:
 	$(Q)cscope -b -q
 	$(Q)ctags -L cscope.files
 
-.PHONY: all clean index
+test: $(APP)
+	$(Q)./$(APP) | uniq -d | sort -n | wc -l
+
+.PHONY: all clean index test
 
 -include $(OBJS:.o=.d)
