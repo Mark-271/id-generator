@@ -15,7 +15,7 @@ static bool finished;
 static int gen_id(void)
 {
 	static int id;
-	return id++;
+	return id++; /* RMW, non-atomic */
 }
 
 /* Function to be operated by thread */
