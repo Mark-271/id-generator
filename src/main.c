@@ -12,14 +12,14 @@ static pthread_t th_id[TH_NUM];
 static int finished;
 
 /* function to generate unique ids */
-int id_gen()
+static int id_gen()
 {
 	static int id;
 	return id++;
 }
 
 /* function to be operated by thread */
-void *thread_func(void *data)
+static void *thread_func(void *data)
 {
 	UNUSED(data);
 	while (!finished)	
