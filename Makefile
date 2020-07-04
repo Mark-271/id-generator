@@ -52,7 +52,7 @@ index:
 	$(Q)ctags -L cscope.files
 
 test: $(APP)
-	$(Q)./$(APP) | uniq -d | sort -n | wc -l
+	$(Q)./$(APP) | grep -v thread | uniq -d | sort -n | wc -l
 
 .PHONY: all clean index test
 

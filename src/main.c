@@ -6,9 +6,9 @@
 #include <pthread.h>
 #include <errno.h>
 
-#define TH_NUM 10
+#define THR_NUM 10
 
-static pthread_t th_id[TH_NUM];
+static pthread_t th_id[THR_NUM];
 static bool finished;
 static pthread_mutex_t lock;
 
@@ -28,9 +28,9 @@ static int gen_id(void)
 /* Function to be operated by thread */
 static void *thread_func(void *data)
 {
-	int id;
+	size_t thr_id = *(int *)data;
 
-	UNUSED(data);
+	printf("---> thread #%zu\n", thr_id);
 
 	while (!finished)
 		printf("%d\n", gen_id());
@@ -42,11 +42,16 @@ int main(void)
 {
 	int err, ret = EXIT_SUCCESS;
 	size_t i;
+	size_t *thr_args;
+
+	thr_args = malloc(THR_NUM * sizeof(size_t));
 
 	pthread_mutex_init(&lock, NULL);
 
-	for (i = 0; i < TH_NUM; ++i) {
-		err = pthread_create(&th_id[i], NULL, thread_func, &i);
+	for (i = 0; i < THR_NUM; ++i) {
+		thr_args[i] = i;
+		err = pthread_create(&th_id[i], NULL, thread_func,
+				     &thr_args[i]);
 		if (err) {
 			perror("Error in pthread_create()");
 			ret = EXIT_FAILURE;
@@ -57,7 +62,7 @@ int main(void)
 	msleep(100);
 	finished = true;
 
-	for (i = 0; i < TH_NUM; ++i) {
+	for (i = 0; i < THR_NUM; ++i) {
 		err = pthread_join(th_id[i], NULL);
 		if (err) {
 			perror("Warning: Error in pthread_join()");
@@ -66,6 +71,7 @@ int main(void)
 	}
 
 err:
+	free(thr_args);
 	pthread_mutex_destroy(&lock);
 	return ret;
 }
