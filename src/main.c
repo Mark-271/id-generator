@@ -22,9 +22,9 @@ static int id_gen(void)
 static void *thread_func(void *data)
 {
 	UNUSED(data);
-	while (!finished)	
+	while (!finished)
 		printf("%d\n", id_gen());
-	
+
 	return NULL;
 }
 
@@ -44,14 +44,13 @@ int main(void)
 	msleep(5000);
 	finished = true;
 
-	
 	for (i = 0; i < TH_NUM; ++i) {
 		err = pthread_join(th_id[i], NULL);
 		if (err) {
 			perror("Error in pthread_join()");
 			return EXIT_FAILURE;
-		}	
+		}
 	}
-	
+
 	return EXIT_SUCCESS;
 }
