@@ -9,7 +9,7 @@
 #define TH_NUM 10
 
 static pthread_t th_id[TH_NUM];
-static int finished;
+static bool finished;
 
 /* function to generate unique ids */
 static int id_gen(void)
