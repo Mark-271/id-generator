@@ -42,7 +42,7 @@ int main(void)
 		}
 	}
 
-	msleep(5000);
+	msleep(100);
 	finished = true;
 
 	for (i = 0; i < TH_NUM; ++i) {
