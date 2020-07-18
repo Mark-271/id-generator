@@ -31,7 +31,7 @@ static int gen_id(void)
 /* Function to be operated by thread */
 static void *thread_func(void *data)
 {
-	size_t thr_id = *(int *)data;
+	size_t thr_id = (size_t)data;
 	size_t i;
 
 	for (i = 0; i < THR_NUM - 1; ++i) {
@@ -65,20 +65,15 @@ int main(void)
 {
 	int err, ret = EXIT_SUCCESS;
 	size_t i;
-	size_t *thr_args;
-
-	thr_args = malloc(THR_NUM * sizeof(size_t));
 
 	pthread_mutex_init(&lock, NULL);
 	pthread_mutex_init(&cond_lock, NULL);
 
-	for(i = 0; i < (THR_NUM - 1); ++i)
+	for (i = 0; i < (THR_NUM - 1); ++i)
 		pthread_cond_init(&cond[i], NULL);
 
 	for (i = 0; i < THR_NUM; ++i) {
-		thr_args[i] = i;
-		err = pthread_create(&th_id[i], NULL, thread_func,
-				     &thr_args[i]);
+		err = pthread_create(&th_id[i], NULL, thread_func, (void *)i);
 		if (err) {
 			perror("Warning: Error in pthread_create()");
 			ret = EXIT_FAILURE;
@@ -98,7 +93,6 @@ int main(void)
 	}
 
 err:
-	free(thr_args);
 	for (i = 0; i < THR_NUM - 1; ++i)
 		pthread_cond_destroy(&cond[THR_NUM - 2 - i]);
 	pthread_mutex_destroy(&cond_lock);
