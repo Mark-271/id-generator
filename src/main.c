@@ -32,28 +32,30 @@ static int gen_id(void)
 static void *thread_func(void *data)
 {
 	size_t thr_id = (size_t)data;
-	size_t i;
 
-	for (i = 0; i < THR_NUM - 1; ++i) {
-		if (thr_id == THR_NUM - 2 - i && !run[THR_NUM - 1 - i]) {
-			pthread_mutex_lock(&cond_lock);
-			pthread_cond_wait(&cond[i], &cond_lock);
-			pthread_mutex_unlock(&cond_lock);
-			break;
-		}
+	/*
+	 * Serialize all threads to be run in descending order:
+	 * for all threads but last one: wait for next thread to run.
+	 */
+	pthread_mutex_lock(&lock);
+	if (thr_id != THR_NUM - 1 && !run[thr_id] && !run[thr_id + 1]) {
+		pthread_mutex_unlock(&lock);
+
+		pthread_mutex_lock(&cond_lock);
+		pthread_cond_wait(&cond[thr_id], &cond_lock);
+		pthread_mutex_unlock(&cond_lock);
+	} else {
+		pthread_mutex_unlock(&lock);
 	}
+
+	pthread_mutex_lock(&lock);
+	run[thr_id] = true;
+	pthread_mutex_unlock(&lock);
 
 	printf("---> thread #%zu\n", thr_id);
-	run[thr_id] = true;
-
-	for (i = THR_NUM - 1; i > 0; --i) {
-		if (thr_id == i) {
-			pthread_mutex_lock(&cond_lock);
-			pthread_cond_signal(&cond[THR_NUM - 1 - i]);
-			pthread_mutex_unlock(&cond_lock);
-			break;
-		}
-	}
+	pthread_mutex_lock(&cond_lock);
+	pthread_cond_signal(&cond[thr_id - 1]);
+	pthread_mutex_unlock(&cond_lock);
 
 	while (!finished)
 		printf("%d\n", gen_id());
