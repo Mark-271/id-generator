@@ -8,8 +8,7 @@
 
 #define THR_NUM 10
 
-static pthread_t th_id[THR_NUM];
-size_t i = THR_NUM - 1;
+static pthread_t thr_ids[THR_NUM];
 static bool finished;
 static pthread_mutex_t lock;
 
@@ -26,60 +25,82 @@ static int gen_id(void)
 	return tmp;
 }
 
+static void print_ids(void)
+{
+	while (!finished)
+		printf("%d\n", gen_id());
+}
+
 /* Function to be operated by thread */
 static void *thread_func(void *data)
 {
 	int err;
-	size_t thr_id = (size_t)data;
+	unsigned long ret = 0;
+	size_t i = (size_t)data;
 
-	printf("---> thread #%zu\n", thr_id);
+	printf("---> thread #%zu\n", i);
+
+	if (i == 0) {
+		print_ids();
+		return NULL;
+	}
 
 	/*
 	 * Serialize all threads to be run in descending order:
 	 * Every following thread apart of last, creates the child one.
 	 */
-
-	pthread_mutex_lock(&lock);
-	--i;
-	pthread_mutex_unlock(&lock);
-
-	if (thr_id) {
-		err = pthread_create(&th_id[i], NULL,  thread_func, (void *) i);
-		if (err)
-			perror("Warning: Error in pthread_create()");
+	err = pthread_create(&thr_ids[i-1], NULL, thread_func,
+			     (void *)(i-1));
+	if (err) {
+		fprintf(stderr, "Error: %s (id=%zu): pthread_create(): %d\n",
+			__func__, i, err);
+		finished = true;
+		return (void *)2;
 	}
 
-	while (!finished)
-		printf("%d\n", gen_id());
+	print_ids();
 
-	pthread_join(th_id[i], NULL);
+	err = pthread_join(thr_ids[i-1], (void **)ret);
+	if (err) {
+		fprintf(stderr, "Error: %s (id=%zu): pthread_join(): %d\n",
+			__func__, i, err);
+		ret = 3;
+	}
 
-	return NULL;
+	return (void *)ret; /* propagate error code further */
 }
 
 int main(void)
 {
 	int err, ret = EXIT_SUCCESS;
+	unsigned long thr_ret;
 
 	pthread_mutex_init(&lock, NULL);
 
-	err = pthread_create(&th_id[i], NULL, thread_func, (void *)i);
+	err = pthread_create(&thr_ids[THR_NUM - 1], NULL, thread_func,
+			     (void *)(THR_NUM - 1));
 	if (err) {
 		perror("Warning: Error in pthread_create()");
 		ret = EXIT_FAILURE;
-		goto err;
+		goto exit;
 	}
 
 	msleep(100);
 	finished = true;
 
-	err = pthread_join(th_id[THR_NUM-1], NULL);
+	err = pthread_join(thr_ids[THR_NUM-1], (void **)&thr_ret);
 	if (err) {
-		perror("Warning: Error in pthread_join()");
+		fprintf(stderr, "Error: pthread_join(), err=%d\n", err);
+		ret = EXIT_FAILURE;
+		goto exit;
+	}
+	if (thr_ret) {
+		fprintf(stderr, "Error: thread func returned error %lu\n",
+			thr_ret);
 		ret = EXIT_FAILURE;
 	}
 
-err:
+exit:
 	pthread_mutex_destroy(&lock);
 	return ret;
 }
